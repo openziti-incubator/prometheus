@@ -40,6 +40,8 @@ import (
 	conntrack "github.com/mwitkow/go-conntrack"
 	"github.com/oklog/run"
 	"github.com/opentracing/opentracing-go"
+	"github.com/openziti/sdk-golang/ziti"
+	zConfig "github.com/openziti/sdk-golang/ziti/config"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
@@ -48,6 +50,7 @@ import (
 	"github.com/prometheus/common/version"
 	toolkit_web "github.com/prometheus/exporter-toolkit/web"
 	toolkit_webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
+	"github.com/sirupsen/logrus"
 	jcfg "github.com/uber/jaeger-client-go/config"
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
 	"go.uber.org/atomic"
@@ -537,6 +540,7 @@ func main() {
 	// Monitor outgoing connections on default transport with conntrack.
 	http.DefaultTransport.(*http.Transport).DialContext = conntrack.NewDialContextFunc(
 		conntrack.DialWithTracing(),
+		conntrack.DialWithDialContextFunc(getZitiDialContextFunction),
 	)
 
 	// This is passed to ruleManager.Update().
@@ -1345,4 +1349,17 @@ func (l jaegerLogger) Error(msg string) {
 func (l jaegerLogger) Infof(msg string, args ...interface{}) {
 	keyvals := []interface{}{"msg", fmt.Sprintf(msg, args...)}
 	level.Info(l.logger).Log(keyvals...)
+}
+
+func getZitiDialContextFunction(context.Context, string, string) (net.Conn, error) {
+	service := "nick service"
+	configFile, err := zConfig.NewFromFile("~/Downloads/nickendpoint03.json")
+
+	if err != nil {
+		logrus.WithError(err).Error("Error loading ziti config file")
+		os.Exit(1)
+	}
+
+	context := ziti.NewContextWithConfig(configFile)
+	return context.Dial(service)
 }
