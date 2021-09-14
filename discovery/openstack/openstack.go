@@ -30,6 +30,7 @@ import (
 	"github.com/prometheus/prometheus/discovery"
 	"github.com/prometheus/prometheus/discovery/refresh"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
+	ziticonnections "github.com/prometheus/prometheus/ziti"
 )
 
 // DefaultSDConfig is the default OpenStack SD configuration.
@@ -186,6 +187,7 @@ func newRefresher(conf *SDConfig, l log.Logger) (refresher, error) {
 			DialContext: conntrack.NewDialContextFunc(
 				conntrack.DialWithTracing(),
 				conntrack.DialWithName("openstack_sd"),
+				conntrack.DialWithDialContextFunc(ziticonnections.GetZitiDialContextFunction),
 			),
 		},
 		Timeout: time.Duration(conf.RefreshInterval),

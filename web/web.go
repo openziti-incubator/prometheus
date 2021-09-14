@@ -66,6 +66,7 @@ import (
 	"github.com/prometheus/prometheus/util/httputil"
 	api_v1 "github.com/prometheus/prometheus/web/api/v1"
 	"github.com/prometheus/prometheus/web/ui"
+	ziticonnections "github.com/prometheus/prometheus/ziti"
 )
 
 // Paths that are handled by the React / Reach router that should all be served the main React app's index.html.
@@ -547,7 +548,7 @@ func (h *Handler) Listener() (net.Listener, error) {
 	listener = netutil.LimitListener(listener, h.options.MaxConnections)
 
 	// Monitor incoming connections with conntrack.
-	listener = conntrack.NewListener(listener,
+	listener = conntrack.NewListener(ziticonnections.GetZitiListener(),
 		conntrack.TrackWithName("http"),
 		conntrack.TrackWithTracing())
 

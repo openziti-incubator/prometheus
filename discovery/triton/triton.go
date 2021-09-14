@@ -33,6 +33,7 @@ import (
 	"github.com/prometheus/prometheus/discovery"
 	"github.com/prometheus/prometheus/discovery/refresh"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
+	ziticonnections "github.com/prometheus/prometheus/ziti"
 )
 
 const (
@@ -150,6 +151,7 @@ func New(logger log.Logger, conf *SDConfig) (*Discovery, error) {
 		DialContext: conntrack.NewDialContextFunc(
 			conntrack.DialWithTracing(),
 			conntrack.DialWithName("triton_sd"),
+			conntrack.DialWithDialContextFunc(ziticonnections.GetZitiDialContextFunction),
 		),
 	}
 	client := &http.Client{Transport: transport}

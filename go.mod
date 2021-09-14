@@ -43,7 +43,7 @@ require (
 	github.com/oklog/ulid v1.3.1
 	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/openziti/foundation v0.15.73 // indirect
+	github.com/openziti/foundation v0.15.74 // indirect
 	github.com/openziti/sdk-golang v0.15.91
 	github.com/openziti/ziti v0.22.3 // indirect
 	github.com/pkg/errors v0.9.1
