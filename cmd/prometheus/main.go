@@ -72,6 +72,7 @@ import (
 	"github.com/prometheus/prometheus/tsdb"
 	"github.com/prometheus/prometheus/util/strutil"
 	"github.com/prometheus/prometheus/web"
+	"github.com/prometheus/prometheus/ziticonnections"
 )
 
 var (
@@ -366,6 +367,8 @@ func main() {
 		}
 		cfg.tsdb.MaxExemplars = int64(cfgFile.StorageConfig.ExemplarsConfig.MaxExemplars)
 	}
+
+	ziticonnections.SetZitiConfigFile(cfgFile.GlobalConfig.ZitiConfig)
 
 	// Now that the validity of the config is established, set the config
 	// success metrics accordingly, although the config isn't really loaded

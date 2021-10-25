@@ -320,6 +320,8 @@ type GlobalConfig struct {
 	QueryLogFile string `yaml:"query_log_file,omitempty"`
 	// The labels to add to any timeseries that this Prometheus instance scrapes.
 	ExternalLabels labels.Labels `yaml:"external_labels,omitempty"`
+	// the path to the ziti config file
+	ZitiConfig string `yaml:"ziti_config"`
 }
 
 // SetDirectory joins any relative file paths with dir.

@@ -47,6 +47,7 @@ import (
 	"github.com/prometheus/prometheus/pkg/timestamp"
 	"github.com/prometheus/prometheus/pkg/value"
 	"github.com/prometheus/prometheus/storage"
+	"github.com/prometheus/prometheus/ziticonnections"
 )
 
 // ScrapeTimestampTolerance is the tolerance for scrape appends timestamps
@@ -269,7 +270,11 @@ func newScrapePool(cfg *config.ScrapeConfig, app storage.Appendable, jitterSeed 
 		logger = log.NewNopLogger()
 	}
 
-	client, err := config_util.NewClientFromConfig(cfg.HTTPClientConfig, cfg.JobName, config_util.WithHTTP2Disabled())
+	client, err := config_util.NewClientFromConfig(
+		cfg.HTTPClientConfig,
+		cfg.JobName,
+		config_util.WithHTTP2Disabled(),
+		config_util.WithDialContextFunc(ziticonnections.GetZitiDialContextFunction))
 	if err != nil {
 		targetScrapePoolsFailed.Inc()
 		return nil, errors.Wrap(err, "error creating HTTP client")
@@ -380,7 +385,11 @@ func (sp *scrapePool) reload(cfg *config.ScrapeConfig) error {
 	targetScrapePoolReloads.Inc()
 	start := time.Now()
 
-	client, err := config_util.NewClientFromConfig(cfg.HTTPClientConfig, cfg.JobName, config_util.WithHTTP2Disabled())
+	client, err := config_util.NewClientFromConfig(
+		cfg.HTTPClientConfig,
+		cfg.JobName,
+		config_util.WithHTTP2Disabled(),
+		config_util.WithDialContextFunc(ziticonnections.GetZitiDialContextFunction))
 	if err != nil {
 		targetScrapePoolReloadsFailed.Inc()
 		return errors.Wrap(err, "error creating HTTP client")
