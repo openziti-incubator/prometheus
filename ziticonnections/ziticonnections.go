@@ -26,7 +26,7 @@ func GetZitiDialContextFunction(ctx context.Context, network string, addr string
 	addressString := strings.Split(addr, ":")[0]
 	zitiDialInfo := strings.Split(addressString, ".")
 
-	if strings.ToLower(zitiDialInfo[1]) == "ziti" {
+	if len(zitiDialInfo) > 1 && strings.ToLower(zitiDialInfo[1]) == "ziti" {
 		zitiDial := strings.Split(zitiDialInfo[0], "-")
 		serviceName := zitiDial[0]
 		identity := zitiDial[1]
