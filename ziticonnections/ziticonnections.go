@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mwitkow/go-conntrack"
 	"github.com/openziti/sdk-golang/ziti"
 	"github.com/openziti/sdk-golang/ziti/config"
 	"github.com/sirupsen/logrus"
@@ -15,7 +14,13 @@ import (
 
 var zitiConfigFile string
 
-func GetZitiDialContextFunction(ctx context.Context, network string, addr string) (net.Conn, error) {
+type ZitiDialContext struct {
+	ZitiConfigPath string
+
+	GetZitiDialContextFunction func(ctx context.Context, network string, addr string)
+}
+
+func GetZitiDialContext(zitiConfigPath string) func(ctx context.Context, network string, addr string) (net.Conn, error) {
 
 	configFile, err := config.NewFromFile(zitiConfigFile)
 
@@ -23,11 +28,11 @@ func GetZitiDialContextFunction(ctx context.Context, network string, addr string
 		logrus.WithError(err).Error("Error loading ziti config file")
 		os.Exit(1)
 	}
-	addressString := strings.Split(addr, ":")[0]
-	zitiDialInfo := strings.Split(addressString, ".")
 
-	if len(zitiDialInfo) > 1 && strings.ToLower(zitiDialInfo[1]) == "ziti" {
-		zitiDial := strings.Split(zitiDialInfo[0], "-")
+	dialContextFunc := func(ctx context.Context, network string, addr string) (net.Conn, error) {
+		zitiDialInfo := strings.Split(addr, ":")[0]
+
+		zitiDial := strings.Split(zitiDialInfo, "-")
 		serviceName := zitiDial[0]
 		identity := zitiDial[1]
 
@@ -38,15 +43,9 @@ func GetZitiDialContextFunction(ctx context.Context, network string, addr string
 
 		context := ziti.NewContextWithConfig(configFile)
 		return context.DialWithOptions(serviceName, dialOptions)
-	} else {
-		dialContext := conntrack.NewDialContextFunc(
-			conntrack.DialWithTracing(),
-			conntrack.DialWithName(addr))
 
-		return dialContext(ctx, network, addr)
 	}
-}
 
-func SetZitiConfigFile(filePath string) {
-	zitiConfigFile = filePath
+	return dialContextFunc
+
 }

@@ -36,6 +36,7 @@ import (
 	config_util "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/version"
+	"github.com/sirupsen/logrus"
 
 	"github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
@@ -270,11 +271,8 @@ func newScrapePool(cfg *config.ScrapeConfig, app storage.Appendable, jitterSeed 
 		logger = log.NewNopLogger()
 	}
 
-	client, err := config_util.NewClientFromConfig(
-		cfg.HTTPClientConfig,
-		cfg.JobName,
-		config_util.WithHTTP2Disabled(),
-		config_util.WithDialContextFunc(ziticonnections.GetZitiDialContextFunction))
+	client, err := getClient(cfg)
+
 	if err != nil {
 		targetScrapePoolsFailed.Inc()
 		return nil, errors.Wrap(err, "error creating HTTP client")
@@ -385,11 +383,8 @@ func (sp *scrapePool) reload(cfg *config.ScrapeConfig) error {
 	targetScrapePoolReloads.Inc()
 	start := time.Now()
 
-	client, err := config_util.NewClientFromConfig(
-		cfg.HTTPClientConfig,
-		cfg.JobName,
-		config_util.WithHTTP2Disabled(),
-		config_util.WithDialContextFunc(ziticonnections.GetZitiDialContextFunction))
+	client, err := getClient(cfg)
+
 	if err != nil {
 		targetScrapePoolReloadsFailed.Inc()
 		return errors.Wrap(err, "error creating HTTP client")
@@ -1749,4 +1744,39 @@ func reusableCache(r, l *config.ScrapeConfig) bool {
 		return false
 	}
 	return reflect.DeepEqual(zeroConfig(r), zeroConfig(l))
+}
+
+func getClient(cfg *config.ScrapeConfig) (*http.Client, error) {
+	isZiti := false
+
+	if cfg.Scheme == "ziti" {
+		cfg.Scheme = "http"
+		isZiti = true
+	} else if cfg.Scheme == "zitis" {
+		cfg.Scheme = "https"
+		isZiti = true
+	}
+
+	var client *http.Client
+	var err error
+	if isZiti {
+		var zitiConfigPath string
+		if cfg.Params.Has("ziti-config") {
+			zitiConfigPath = cfg.Params.Get("ziti-config")
+			cfg.Params.Del("ziti-config")
+		}
+		logrus.Infof(zitiConfigPath)
+		client, err = config_util.NewClientFromConfig(
+			cfg.HTTPClientConfig,
+			cfg.JobName,
+			config_util.WithHTTP2Disabled(),
+			config_util.WithDialContextFunc(ziticonnections.GetZitiDialContext(zitiConfigPath)))
+	} else {
+		client, err = config_util.NewClientFromConfig(
+			cfg.HTTPClientConfig,
+			cfg.JobName,
+			config_util.WithHTTP2Disabled())
+	}
+
+	return client, err
 }
