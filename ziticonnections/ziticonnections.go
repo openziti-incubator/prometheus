@@ -12,17 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var zitiConfigFile string
-
-type ZitiDialContext struct {
-	ZitiConfigPath string
-
-	GetZitiDialContextFunction func(ctx context.Context, network string, addr string)
-}
-
 func GetZitiDialContext(zitiConfigPath string) func(ctx context.Context, network string, addr string) (net.Conn, error) {
 
-	configFile, err := config.NewFromFile(zitiConfigFile)
+	configFile, err := config.NewFromFile(zitiConfigPath)
 
 	if err != nil {
 		logrus.WithError(err).Error("Error loading ziti config file")
