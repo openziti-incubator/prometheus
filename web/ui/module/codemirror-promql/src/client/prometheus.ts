@@ -16,12 +16,6 @@ import { Matcher } from '../types';
 import { labelMatchersToString } from '../parser';
 import LRUCache from 'lru-cache';
 
-const apiPrefix = '/api/v1';
-const labelsEndpoint = apiPrefix + '/labels';
-const labelValuesEndpoint = apiPrefix + '/label/:name/values';
-const seriesEndpoint = apiPrefix + '/series';
-const metricMetadataEndpoint = apiPrefix + '/metadata';
-
 export interface MetricMetadata {
   type: string;
   help: string;
@@ -53,13 +47,15 @@ export interface CacheConfig {
 }
 
 export interface PrometheusConfig {
-  url: string;
+  url?: string;
   lookbackInterval?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   httpErrorHandler?: (error: any) => void;
   fetchFn?: FetchFn;
   // cache will allow user to change the configuration of the cached Prometheus client (which is used by default)
   cache?: CacheConfig;
   httpMethod?: 'POST' | 'GET';
+  apiPrefix?: string;
 }
 
 interface APIResponse<T> {
@@ -79,14 +75,16 @@ const serviceUnavailable = 503;
 export class HTTPPrometheusClient implements PrometheusClient {
   private readonly lookbackInterval = 60 * 60 * 1000 * 12; //12 hours
   private readonly url: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly errorHandler?: (error: any) => void;
   private readonly httpMethod: 'POST' | 'GET' = 'POST';
+  private readonly apiPrefix: string = '/api/v1';
   // For some reason, just assigning via "= fetch" here does not end up executing fetch correctly
   // when calling it, thus the indirection via another function wrapper.
   private readonly fetchFn: FetchFn = (input: RequestInfo, init?: RequestInit): Promise<Response> => fetch(input, init);
 
   constructor(config: PrometheusConfig) {
-    this.url = config.url;
+    this.url = config.url ? config.url : '';
     this.errorHandler = config.httpErrorHandler;
     if (config.lookbackInterval) {
       this.lookbackInterval = config.lookbackInterval;
@@ -97,6 +95,9 @@ export class HTTPPrometheusClient implements PrometheusClient {
     if (config.httpMethod) {
       this.httpMethod = config.httpMethod;
     }
+    if (config.apiPrefix) {
+      this.apiPrefix = config.apiPrefix;
+    }
   }
 
   labelNames(metricName?: string): Promise<string[]> {
@@ -104,7 +105,7 @@ export class HTTPPrometheusClient implements PrometheusClient {
     const start = new Date(end.getTime() - this.lookbackInterval);
     if (metricName === undefined || metricName === '') {
       const request = this.buildRequest(
-        labelsEndpoint,
+        this.labelsEndpoint(),
         new URLSearchParams({
           start: start.toISOString(),
           end: end.toISOString(),
@@ -148,7 +149,7 @@ export class HTTPPrometheusClient implements PrometheusClient {
         end: end.toISOString(),
       });
       // See https://prometheus.io/docs/prometheus/latest/querying/api/#querying-label-values
-      return this.fetchAPI<string[]>(`${labelValuesEndpoint.replace(/:name/gi, labelName)}?${params}`).catch((error) => {
+      return this.fetchAPI<string[]>(`${this.labelValuesEndpoint().replace(/:name/gi, labelName)}?${params}`).catch((error) => {
         if (this.errorHandler) {
           this.errorHandler(error);
         }
@@ -173,7 +174,7 @@ export class HTTPPrometheusClient implements PrometheusClient {
   }
 
   metricMetadata(): Promise<Record<string, MetricMetadata[]>> {
-    return this.fetchAPI<Record<string, MetricMetadata[]>>(metricMetadataEndpoint).catch((error) => {
+    return this.fetchAPI<Record<string, MetricMetadata[]>>(this.metricMetadataEndpoint()).catch((error) => {
       if (this.errorHandler) {
         this.errorHandler(error);
       }
@@ -185,7 +186,7 @@ export class HTTPPrometheusClient implements PrometheusClient {
     const end = new Date();
     const start = new Date(end.getTime() - this.lookbackInterval);
     const request = this.buildRequest(
-      seriesEndpoint,
+      this.seriesEndpoint(),
       new URLSearchParams({
         start: start.toISOString(),
         end: end.toISOString(),
@@ -237,6 +238,22 @@ export class HTTPPrometheusClient implements PrometheusClient {
     }
     return { uri, body };
   }
+
+  private labelsEndpoint(): string {
+    return `${this.apiPrefix}/labels`;
+  }
+
+  private labelValuesEndpoint(): string {
+    return `${this.apiPrefix}/label/:name/values`;
+  }
+
+  private seriesEndpoint(): string {
+    return `${this.apiPrefix}/series`;
+  }
+
+  private metricMetadataEndpoint(): string {
+    return `${this.apiPrefix}/metadata`;
+  }
 }
 
 class Cache {
@@ -272,10 +289,7 @@ class Cache {
         }
         const labelValues = currentAssociation.get(key);
         if (labelValues === undefined) {
-          currentAssociation.set(
-            key,
-            new Set<string>([value])
-          );
+          currentAssociation.set(key, new Set<string>([value]));
         } else {
           labelValues.add(value);
         }

@@ -23,8 +23,9 @@ import (
 	"github.com/pkg/errors"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/pkg/timestamp"
+
+	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/model/timestamp"
 	"github.com/prometheus/prometheus/rules"
 	"github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb"
@@ -48,10 +49,11 @@ type ruleImporter struct {
 }
 
 type ruleImporterConfig struct {
-	outputDir    string
-	start        time.Time
-	end          time.Time
-	evalInterval time.Duration
+	outputDir        string
+	start            time.Time
+	end              time.Time
+	evalInterval     time.Duration
+	maxBlockDuration time.Duration
 }
 
 // newRuleImporter creates a new rule importer that can be used to parse and evaluate recording rule files and create new series
@@ -81,10 +83,9 @@ func (importer *ruleImporter) importAll(ctx context.Context) (errs []error) {
 	for name, group := range importer.groups {
 		level.Info(importer.logger).Log("backfiller", "processing group", "name", name)
 
-		stimeWithAlignment := group.EvalTimestamp(importer.config.start.UnixNano())
 		for i, r := range group.Rules() {
 			level.Info(importer.logger).Log("backfiller", "processing rule", "id", i, "name", r.Name())
-			if err := importer.importRule(ctx, r.Query().String(), r.Name(), r.Labels(), stimeWithAlignment, importer.config.end, group); err != nil {
+			if err := importer.importRule(ctx, r.Query().String(), r.Name(), r.Labels(), importer.config.start, importer.config.end, int64(importer.config.maxBlockDuration/time.Millisecond), group); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -93,8 +94,9 @@ func (importer *ruleImporter) importAll(ctx context.Context) (errs []error) {
 }
 
 // importRule queries a prometheus API to evaluate rules at times in the past.
-func (importer *ruleImporter) importRule(ctx context.Context, ruleExpr, ruleName string, ruleLabels labels.Labels, start, end time.Time, grp *rules.Group) (err error) {
-	blockDuration := tsdb.DefaultBlockDuration
+func (importer *ruleImporter) importRule(ctx context.Context, ruleExpr, ruleName string, ruleLabels labels.Labels, start, end time.Time,
+	maxBlockDuration int64, grp *rules.Group) (err error) {
+	blockDuration := getCompatibleBlockDuration(maxBlockDuration)
 	startInMs := start.Unix() * int64(time.Second/time.Millisecond)
 	endInMs := end.Unix() * int64(time.Second/time.Millisecond)
 
@@ -103,11 +105,18 @@ func (importer *ruleImporter) importRule(ctx context.Context, ruleExpr, ruleName
 
 		currStart := max(startOfBlock/int64(time.Second/time.Millisecond), start.Unix())
 		startWithAlignment := grp.EvalTimestamp(time.Unix(currStart, 0).UTC().UnixNano())
+		for startWithAlignment.Unix() < currStart {
+			startWithAlignment = startWithAlignment.Add(grp.Interval())
+		}
+		end := time.Unix(min(endOfBlock/int64(time.Second/time.Millisecond), end.Unix()), 0).UTC()
+		if end.Before(startWithAlignment) {
+			break
+		}
 		val, warnings, err := importer.apiClient.QueryRange(ctx,
 			ruleExpr,
 			v1.Range{
 				Start: startWithAlignment,
-				End:   time.Unix(min(endOfBlock/int64(time.Second/time.Millisecond), end.Unix()), 0).UTC(),
+				End:   end,
 				Step:  grp.Interval(),
 			},
 		)
@@ -124,7 +133,7 @@ func (importer *ruleImporter) importRule(ctx context.Context, ruleExpr, ruleName
 		// also need to append samples throughout the whole block range. To allow that, we
 		// pretend that the block is twice as large here, but only really add sample in the
 		// original interval later.
-		w, err := tsdb.NewBlockWriter(log.NewNopLogger(), importer.config.outputDir, 2*tsdb.DefaultBlockDuration)
+		w, err := tsdb.NewBlockWriter(log.NewNopLogger(), importer.config.outputDir, 2*blockDuration)
 		if err != nil {
 			return errors.Wrap(err, "new block writer")
 		}
@@ -141,28 +150,28 @@ func (importer *ruleImporter) importRule(ctx context.Context, ruleExpr, ruleName
 			matrix = val.(model.Matrix)
 
 			for _, sample := range matrix {
-				currentLabels := make(labels.Labels, 0, len(sample.Metric)+len(ruleLabels)+1)
-				currentLabels = append(currentLabels, labels.Label{
-					Name:  labels.MetricName,
-					Value: ruleName,
-				})
-
-				currentLabels = append(currentLabels, ruleLabels...)
+				lb := labels.NewBuilder(labels.Labels{})
 
 				for name, value := range sample.Metric {
-					currentLabels = append(currentLabels, labels.Label{
-						Name:  string(name),
-						Value: string(value),
-					})
+					lb.Set(string(name), string(value))
 				}
+
+				// Setting the rule labels after the output of the query,
+				// so they can override query output.
+				for _, l := range ruleLabels {
+					lb.Set(l.Name, l.Value)
+				}
+
+				lb.Set(labels.MetricName, ruleName)
+
 				for _, value := range sample.Values {
-					if err := app.add(ctx, currentLabels, timestamp.FromTime(value.Timestamp.Time()), float64(value.Value)); err != nil {
+					if err := app.add(ctx, lb.Labels(), timestamp.FromTime(value.Timestamp.Time()), float64(value.Value)); err != nil {
 						return errors.Wrap(err, "add")
 					}
 				}
 			}
 		default:
-			return errors.New(fmt.Sprintf("rule result is wrong type %s", val.Type().String()))
+			return fmt.Errorf("rule result is wrong type %s", val.Type().String())
 		}
 
 		if err := app.flushAndCommit(ctx); err != nil {

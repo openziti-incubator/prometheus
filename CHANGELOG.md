@@ -1,3 +1,104 @@
+## 2.32.0-rc.0 / 2021-12-01
+
+This list of changes is relative to [v2.32.0-beta.0](https://github.com/prometheus/prometheus/releases/tag/v2.32.0-beta.0), which was a special 2.32 beta release to pre-publish the Prometheus Agent features.
+
+* [FEATURE] TSDB: Add support for forwarding exemplars in Agent mode. #9664
+* [FEATURE] UI: Adapt web UI for Prometheus Agent mode. #9851
+* [ENHANCEMENT] Linode SD: Tune API request page sizes. #9779
+* [BUGFIX] TSDB: Fix panic when checkpoint directory is empty. #9687
+* [BUGFIX] TSDB: Fix panic, out of order chunks, and race warning during WAL replay. #9856
+* [BUGFIX] UI: Correctly render links for targets with IPv6 addresses that contain a Zone ID. #9853
+* [BUGFIX] Promtool: Fix checking of `authorization.credentials_file` and `bearer_token_file` fields. #9883
+
+## 2.32.0-beta.0 / 2021-11-16
+
+This beta release introduces the Prometheus Agent, a new mode of operation for
+Prometheus optimized for remote-write only scenarios. In this mode, Prometheus
+does not generate blocks on the local filesystem and is not queryable locally.
+Enable with `--enable-feature=agent`.
+
+Learn more about the Prometheus Agent in our [blog post](https://prometheus.io/blog/2021/11/16/agent/).
+
+* [CHANGE] remote-write: Change default max retry time from 100ms to 5 seconds. #9634
+* [FEATURE] Agent: New mode of operation optimized for remote-write only scenarios, without local storage. Enable with `--enable-feature=agent`. #8785
+* [FEATURE] Promtool: Add `promtool check service-discovery` command. #8970
+* [FEATURE] UI: Add search in metrics dropdown. #9629
+* [FEATURE] Templates: Add parseDuration to template functions. #8817
+* [ENHANCEMENT] Promtool: Improve test output. #8064
+* [ENHANCEMENT] Promtool: Use kahan summation for better numerical stability. #9588
+* [ENHANCEMENT] Remote-write: Reuse memory for marshalling. #9412
+* [ENHANCEMENT] Scrape: Add `scrape_body_size_bytes` scrape metric behind the `--enable-feature=extra-scrape-metrics` flag. #9569
+* [ENHANCEMENT] TSDB: Add windows arm64 support. #9703
+* [ENHANCEMENT] TSDB: Optimize query by skipping unneeded sorting in TSDB. #9673
+* [ENHANCEMENT] Templates: Support int and uint as datatypes for template formatting. #9680
+* [ENHANCEMENT] UI: Prefer `rate` over `rad`, `delta` over `deg`, and `count` over `cos` in autocomplete. #9688
+* [BUGFIX] TSDB: Add more size checks when writing individual sections in the index. #9710
+* [BUGFIX] PromQL: Make `deriv()` return zero values for constant series. #9728
+
+## 2.31.1 / 2021-11-05
+
+* [BUGFIX] SD: Fix a panic when the experimental discovery manager receives
+  targets during a reload. #9656
+
+## 2.31.0 / 2021-11-02
+
+* [CHANGE] UI: Remove standard PromQL editor in favour of the codemirror-based editor. #9452
+* [FEATURE] PromQL: Add trigonometric functions and `atan2` binary operator. #9239 #9248 #9515
+* [FEATURE] Remote: Add support for exemplar in the remote write receiver endpoint. #9319 #9414
+* [FEATURE] SD: Add PuppetDB service discovery. #8883
+* [FEATURE] SD: Add Uyuni service discovery. #8190
+* [FEATURE] Web: Add support for security-related HTTP headers. #9546
+* [ENHANCEMENT] Azure SD: Add `proxy_url`, `follow_redirects`, `tls_config`. #9267
+* [ENHANCEMENT] Backfill: Add `--max-block-duration` in `promtool create-blocks-from rules`. #9511
+* [ENHANCEMENT] Config: Print human-readable sizes with unit instead of raw numbers. #9361
+* [ENHANCEMENT] HTTP: Re-enable HTTP/2. #9398
+* [ENHANCEMENT] Kubernetes SD: Warn user if number of endpoints exceeds limit. #9467
+* [ENHANCEMENT] OAuth2: Add TLS configuration to token requests. #9550
+* [ENHANCEMENT] PromQL: Several optimizations. #9365 #9360 #9362 #9552
+* [ENHANCEMENT] PromQL: Make aggregations deterministic in instant queries. #9459
+* [ENHANCEMENT] Rules: Add the ability to limit number of alerts or series. #9260 #9541
+* [ENHANCEMENT] SD: Experimental discovery manager to avoid restarts upon reload. Disabled by default, enable with flag `--enable-feature=new-service-discovery-manager`. #9349 #9537
+* [ENHANCEMENT] UI: Debounce timerange setting changes. #9359
+* [BUGFIX] Backfill: Apply rule labels after query labels. #9421
+* [BUGFIX] Scrape: Resolve conflicts between multiple exported label prefixes. #9479 #9518
+* [BUGFIX] Scrape: Restart scrape loops when `__scrape_interval__` is changed. #9551
+* [BUGFIX] TSDB: Fix memory leak in samples deletion. #9151
+* [BUGFIX] UI: Use consistent margin-bottom for all alert kinds. #9318
+
+## 2.30.3 / 2021-10-05
+
+* [BUGFIX] TSDB: Fix panic on failed snapshot replay. #9438
+* [BUGFIX] TSDB: Don't fail snapshot replay with exemplar storage disabled when the snapshot contains exemplars. #9438
+
+## 2.30.2 / 2021-10-01
+
+* [BUGFIX] TSDB: Don't error on overlapping m-mapped chunks during WAL replay. #9381
+
+## 2.30.1 / 2021-09-28
+
+* [ENHANCEMENT] Remote Write: Redact remote write URL when used for metric label. #9383
+* [ENHANCEMENT] UI: Redact remote write URL and proxy URL passwords in the `/config` page. #9408
+* [BUGFIX] promtool rules backfill: Prevent creation of data before the start time. #9339
+* [BUGFIX] promtool rules backfill: Do not query after the end time. #9340
+* [BUGFIX] Azure SD: Fix panic when no computername is set. #9387
+
+## 2.30.0 / 2021-09-14
+
+* [FEATURE] **experimental** TSDB: Snapshot in-memory chunks on shutdown for faster restarts. Behind `--enable-feature=memory-snapshot-on-shutdown` flag. #7229
+* [FEATURE] **experimental** Scrape: Configure scrape interval and scrape timeout via relabeling using `__scrape_interval__` and `__scrape_timeout__` labels respectively. #8911
+* [FEATURE] Scrape: Add `scrape_timeout_seconds` and `scrape_sample_limit` metric. Behind `--enable-feature=extra-scrape-metrics` flag to avoid additional cardinality by default. #9247 #9295
+* [ENHANCEMENT] Scrape: Add `--scrape.timestamp-tolerance` flag to adjust scrape timestamp tolerance when enabled via `--scrape.adjust-timestamps`. #9283
+* [ENHANCEMENT] Remote Write: Improve throughput when sending exemplars. #8921
+* [ENHANCEMENT] TSDB: Optimise WAL loading by removing extra map and caching min-time #9160
+* [ENHANCEMENT] promtool: Speed up checking for duplicate rules. #9262/#9306
+* [ENHANCEMENT] Scrape: Reduce allocations when parsing the metrics. #9299
+* [ENHANCEMENT] docker_sd: Support host network mode #9125
+* [BUGFIX] Exemplars: Fix panic when resizing exemplar storage from 0 to a non-zero size. #9286
+* [BUGFIX] TSDB: Correctly decrement `prometheus_tsdb_head_active_appenders` when the append has no samples. #9230
+* [BUGFIX] promtool rules backfill: Return 1 if backfill was unsuccessful. #9303
+* [BUGFIX] promtool rules backfill: Avoid creation of overlapping blocks. #9324
+* [BUGFIX] config: Fix a panic when reloading configuration with a `null` relabel action. #9224
+
 ## 2.29.2 / 2021-08-27
 
 * [BUGFIX] Fix Kubernetes SD failing to discover Ingress in Kubernetes v1.22. #9205
@@ -82,6 +183,7 @@ This vulnerability has been reported by Aaron Devaney from MDSec.
 
 ## 2.27.0 / 2021-05-12
 
+* [CHANGE] Remote write: Metric `prometheus_remote_storage_samples_bytes_total` renamed to `prometheus_remote_storage_bytes_total`. #8296
 * [FEATURE] Promtool: Retroactive rule evaluation functionality. #7675
 * [FEATURE] Configuration: Environment variable expansion for external labels. Behind `--enable-feature=expand-external-labels` flag. #8649
 * [FEATURE] TSDB: Add a flag(`--storage.tsdb.max-block-chunk-segment-size`) to control the max chunks file size of the blocks for small Prometheus instances. #8478
@@ -156,7 +258,7 @@ Alertmanager API v2 was released in Alertmanager v0.16.0 (released in January
 * [ENHANCEMENT] Mixins: Scope grafana configuration. #8332
 * [ENHANCEMENT] Kubernetes SD: Add endpoint labels metadata. #8273
 * [ENHANCEMENT] UI: Expose total number of label pairs in head in TSDB stats page. #8343
-* [ENHANCEMENT] TSDB: Reload blocks every minute, to detect new blocks and enforce retention more often. #8343
+* [ENHANCEMENT] TSDB: Reload blocks every minute, to detect new blocks and enforce retention more often. #8340
 * [BUGFIX] API: Fix global URL when external address has no port. #8359
 * [BUGFIX] Backfill: Fix error message handling. #8432
 * [BUGFIX] Backfill: Fix "add sample: out of bounds" error when series span an entire block. #8476

@@ -453,6 +453,12 @@ describe('analyzeCompletion test', () => {
       expectedContext: [{ kind: ContextKind.BinOp }, { kind: ContextKind.Offset }],
     },
     {
+      title: 'autocomplete offset or binop 5',
+      expr: 'sum(http_requests_total{method="GET"} off)',
+      pos: 41,
+      expectedContext: [{ kind: ContextKind.BinOp }, { kind: ContextKind.Offset }],
+    },
+    {
       title: 'not autocompleting duration for a matrixSelector',
       expr: 'go[]',
       pos: 3,
@@ -778,8 +784,7 @@ describe('autocomplete promQL test', () => {
     },
     {
       title: 'offline function/aggregation autocompletion in aggregation 4',
-      expr:
-        'sum by (instance, job) ( sum_over(scrape_series_added[1h])) / sum by (instance, job) (sum_over_time(scrape_samples_scraped[1h])) > 0.1 and sum by(instance, job) (scrape_samples_scraped{) > 100',
+      expr: 'sum by (instance, job) ( sum_over(scrape_series_added[1h])) / sum by (instance, job) (sum_over_time(scrape_samples_scraped[1h])) > 0.1 and sum by(instance, job) (scrape_samples_scraped{) > 100',
       pos: 33,
       expectedResult: {
         options: ([] as Completion[]).concat(functionIdentifierTerms, aggregateOpTerms, snippets),
@@ -1053,6 +1058,17 @@ describe('autocomplete promQL test', () => {
       },
     },
     {
+      title: 'autocomplete offset or binop 5',
+      expr: 'sum(http_requests_total{method="GET"} off)',
+      pos: 41,
+      expectedResult: {
+        options: ([] as Completion[]).concat(binOpTerms, [{ label: 'offset' }]),
+        from: 38,
+        to: 41,
+        span: /^[a-zA-Z0-9_:]+$/,
+      },
+    },
+    {
       title: 'offline not autocompleting duration for a matrixSelector',
       expr: 'go[]',
       pos: 3,
@@ -1228,6 +1244,37 @@ describe('autocomplete promQL test', () => {
         ],
         from: 25,
         to: 25,
+        span: /^[a-zA-Z0-9_:]+$/,
+      },
+    },
+    {
+      title: 'online autocomplete with initial metric list',
+      expr: 'rat',
+      pos: 3,
+      conf: { remote: { cache: { initialMetricList: ['metric1', 'metric2', 'rat'] } } },
+      expectedResult: {
+        options: ([] as Completion[]).concat(
+          [
+            {
+              label: 'metric1',
+              type: 'constant',
+            },
+            {
+              label: 'metric2',
+              type: 'constant',
+            },
+            {
+              label: 'rat',
+              type: 'constant',
+            },
+          ],
+          functionIdentifierTerms,
+          aggregateOpTerms,
+          numberTerms,
+          snippets
+        ),
+        from: 0,
+        to: 3,
         span: /^[a-zA-Z0-9_:]+$/,
       },
     },

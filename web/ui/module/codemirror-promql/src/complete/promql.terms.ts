@@ -28,6 +28,7 @@ export const binOpTerms = [
   { label: '<' },
   { label: '<=' },
   { label: '!=' },
+  { label: 'atan2' },
   { label: 'and' },
   { label: 'or' },
   { label: 'unless' },
@@ -62,6 +63,42 @@ export const functionIdentifierTerms = [
     label: 'absent_over_time',
     detail: 'function',
     info: 'Determine whether input range vector is empty',
+    type: 'function',
+  },
+  {
+    label: 'acos',
+    detail: 'function',
+    info: 'Calculate the arccosine, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'acosh',
+    detail: 'function',
+    info: 'Calculate the inverse hyperbolic cosine, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'asin',
+    detail: 'function',
+    info: 'Calculate the arcsine, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'asinh',
+    detail: 'function',
+    info: 'Calculate the inverse hyperbolic sine, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'atan',
+    detail: 'function',
+    info: 'Calculate the arctangent, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'atanh',
+    detail: 'function',
+    info: 'Calculate the inverse hyperbolic tangent, in radians, for input series',
     type: 'function',
   },
   {
@@ -101,6 +138,22 @@ export const functionIdentifierTerms = [
     type: 'function',
   },
   {
+    label: 'cos',
+    detail: 'function',
+    info: 'Calculate the cosine, in radians, for input series',
+    type: 'function',
+    // Avoid ranking higher than `count`.
+    boost: -1,
+  },
+  {
+    label: 'cosh',
+    detail: 'function',
+    info: 'Calculate the hyperbolic cosine, in radians, for input series',
+    type: 'function',
+    // Avoid ranking higher than `count`.
+    boost: -1,
+  },
+  {
     label: 'count_over_time',
     detail: 'function',
     info: 'Count the number of values for each input series',
@@ -123,6 +176,14 @@ export const functionIdentifierTerms = [
     detail: 'function',
     info: 'Return the day of the week for provided timestamps',
     type: 'function',
+  },
+  {
+    label: 'deg',
+    detail: 'function',
+    info: 'Convert radians to degrees for input series',
+    type: 'function',
+    // Avoid ranking higher than `delta`.
+    boost: -1,
   },
   {
     label: 'delta',
@@ -245,6 +306,12 @@ export const functionIdentifierTerms = [
     type: 'function',
   },
   {
+    label: 'pi',
+    detail: 'function',
+    info: 'Return pi',
+    type: 'function',
+  },
+  {
     label: 'predict_linear',
     detail: 'function',
     info: 'Predict the value of a gauge into the future',
@@ -261,6 +328,14 @@ export const functionIdentifierTerms = [
     detail: 'function',
     info: 'Calculate value quantiles over time for input series',
     type: 'function',
+  },
+  {
+    label: 'rad',
+    detail: 'function',
+    info: 'Convert degrees to radians for input series',
+    type: 'function',
+    // Avoid ranking higher than `rate`.
+    boost: -1,
   },
   {
     label: 'rate',
@@ -290,6 +365,18 @@ export const functionIdentifierTerms = [
     label: 'sgn',
     detail: 'function',
     info: 'Returns the sign of the instant vector',
+    type: 'function',
+  },
+  {
+    label: 'sin',
+    detail: 'function',
+    info: 'Calculate the sine, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'sinh',
+    detail: 'function',
+    info: 'Calculate the hyperbolic sine, in radians, for input series',
     type: 'function',
   },
   {
@@ -326,6 +413,18 @@ export const functionIdentifierTerms = [
     label: 'sum_over_time',
     detail: 'function',
     info: 'Calculate the sum over the values of input series over time',
+    type: 'function',
+  },
+  {
+    label: 'tan',
+    detail: 'function',
+    info: 'Calculate the tangent, in radians, for input series',
+    type: 'function',
+  },
+  {
+    label: 'tanh',
+    detail: 'function',
+    info: 'Calculate the hyperbolic tangent, in radians, for input series',
     type: 'function',
   },
   {

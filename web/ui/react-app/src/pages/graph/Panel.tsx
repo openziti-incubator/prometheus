@@ -5,7 +5,6 @@ import { Alert, Button, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane } f
 import moment from 'moment-timezone';
 
 import ExpressionInput from './ExpressionInput';
-import CMExpressionInput from './CMExpressionInput';
 import GraphControls from './GraphControls';
 import { GraphTabContent } from './GraphTabContent';
 import DataTable from './DataTable';
@@ -13,6 +12,7 @@ import TimeInput from './TimeInput';
 import QueryStatsView, { QueryStats } from './QueryStatsView';
 import { QueryParams, ExemplarData } from '../../types/types';
 import { API_PATH } from '../../constants/constants';
+import { debounce } from '../../utils';
 
 interface PanelProps {
   options: PanelOptions;
@@ -23,7 +23,6 @@ interface PanelProps {
   removePanel: () => void;
   onExecuteQuery: (query: string) => void;
   pathPrefix: string;
-  useExperimentalEditor: boolean;
   enableAutocomplete: boolean;
   enableHighlighting: boolean;
   enableLinter: boolean;
@@ -69,6 +68,7 @@ export const PanelDefaultOptions: PanelOptions = {
 
 class Panel extends Component<PanelProps, PanelState> {
   private abortInFlightFetch: (() => void) | null = null;
+  private debounceExecuteQuery: () => void;
 
   constructor(props: PanelProps) {
     super(props);
@@ -83,17 +83,19 @@ class Panel extends Component<PanelProps, PanelState> {
       stats: null,
       exprInputValue: props.options.expr,
     };
+
+    this.debounceExecuteQuery = debounce(this.executeQuery.bind(this), 250);
   }
 
   componentDidUpdate({ options: prevOpts }: PanelProps): void {
     const { endTime, range, resolution, showExemplars, type } = this.props.options;
-    if (
-      prevOpts.endTime !== endTime ||
-      prevOpts.range !== range ||
-      prevOpts.resolution !== resolution ||
-      prevOpts.type !== type ||
-      showExemplars !== prevOpts.showExemplars
-    ) {
+
+    if (prevOpts.endTime !== endTime || prevOpts.range !== range) {
+      this.debounceExecuteQuery();
+      return;
+    }
+
+    if (prevOpts.resolution !== resolution || prevOpts.type !== type || showExemplars !== prevOpts.showExemplars) {
       this.executeQuery();
     }
   }
@@ -268,29 +270,17 @@ class Panel extends Component<PanelProps, PanelState> {
       <div className="panel">
         <Row>
           <Col>
-            {this.props.useExperimentalEditor ? (
-              <CMExpressionInput
-                value={this.state.exprInputValue}
-                onExpressionChange={this.handleExpressionChange}
-                executeQuery={this.executeQuery}
-                loading={this.state.loading}
-                enableAutocomplete={this.props.enableAutocomplete}
-                enableHighlighting={this.props.enableHighlighting}
-                enableLinter={this.props.enableLinter}
-                queryHistory={pastQueries}
-                metricNames={metricNames}
-              />
-            ) : (
-              <ExpressionInput
-                value={this.state.exprInputValue}
-                onExpressionChange={this.handleExpressionChange}
-                executeQuery={this.executeQuery}
-                loading={this.state.loading}
-                enableAutocomplete={this.props.enableAutocomplete}
-                queryHistory={pastQueries}
-                metricNames={metricNames}
-              />
-            )}
+            <ExpressionInput
+              value={this.state.exprInputValue}
+              onExpressionChange={this.handleExpressionChange}
+              executeQuery={this.executeQuery}
+              loading={this.state.loading}
+              enableAutocomplete={this.props.enableAutocomplete}
+              enableHighlighting={this.props.enableHighlighting}
+              enableLinter={this.props.enableLinter}
+              queryHistory={pastQueries}
+              metricNames={metricNames}
+            />
           </Col>
         </Row>
         <Row>
