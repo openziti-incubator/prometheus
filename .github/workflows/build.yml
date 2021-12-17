@@ -1,0 +1,59 @@
+name: build
+
+on:
+  create:
+    tags:
+     - '*'
+
+jobs:
+  build:
+    name: Building on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+         - os: ubuntu-latest
+           helm_artifact_name: helm
+           helm_asset_name: helm-linux-amd64
+         - os: windows-latest
+           helm_artifact_name: helm.exe
+           helm_asset_name: helm-windows-amd64.exe
+         - os: macos-latest
+           helm_artifact_name: helm
+           helm_asset_name: helm-macos-amd64
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+
+    - name: Make the build dir
+      run: mkdir "${{ runner.workspace }}/build"
+      
+    - name: Build UI Assets
+      run: make assets
+      
+    - name: Build
+      run: go build -o ${{ runner.workspace }}/build ./...
+      
+    - name: make dir to tar
+      run: mkdir ${{ runner.workspace }}/{{ matrix.helm_artifact_name }}
+      
+    - name: move binary
+      run: mv ${{ runner.workspace }}/build/${{ matrix.helm_artifact_name }} ${{ runner.workspace }}/${{ matrix.helm_artifact_name }}/.
+      
+    - name: copy web
+      run: cp -R ${{ runner.workspace }}/web ${{ runner.workspace }}/${{ matrix.helm_artifact_name }}/.
+    
+    - name: tar
+      run: tar -zcvf ${{ matrix.helm_artifact_name }}.tar.gz ${{ runner.workspace }}/${{ matrix.helm_artifact_name }}
+      
+    - name: Upload helm binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ runner.workspace }}/build/${{ matrix.helm_artifact_name }}
+        asset_name: ${{ matrix.helm_asset_name }}
+        tag: ${{ github.ref }}
