@@ -13,14 +13,14 @@ jobs:
       matrix:
         include:
          - os: ubuntu-latest
-           helm_artifact_name: helm
-           helm_asset_name: helm-linux-amd64
-         - os: windows-latest
-           helm_artifact_name: helm.exe
-           helm_asset_name: helm-windows-amd64.exe
+           helm_artifact_name: prometheus
+           helm_asset_name: prometheus-linux-amd64
+#         - os: windows-latest
+#           helm_artifact_name: prometheus.exe
+#           helm_asset_name: prometheus-windows-amd64.exe
          - os: macos-latest
-           helm_artifact_name: helm
-           helm_asset_name: helm-macos-amd64
+           helm_artifact_name: prometheus
+           helm_asset_name: prometheus-macos-amd64
     steps:
     - uses: actions/checkout@v2
 
