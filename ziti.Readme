@@ -1,0 +1,92 @@
+This is a zitified version of prometheus. This version of prometheus can be configured to scrape both ziti and non-ziti targets
+
+
+Running the executable
+
+The executable expects to be ran from the same directory that the /web directly is located in order to display the prometheus UI. In order to run the executable first clone the 
+
+Building:
+For local development, first run
+
+make assets
+
+this will create the required web assets for displaying metrics using the react app provided by the prometheus project. Next run the following command
+
+go build -o prometheus ./cmd/prometheus/main.go
+
+
+Building an image
+
+first run
+
+make assets
+
+and then run
+
+docker build -f ziti.Dockerfile . --platform linux/amd64
+
+
+Configuring Ziti - Server Side
+
+To configure the prometheus server to use ziti all that is needed is to create a ziti identity to be used by the prometheus server and add a modified scrape config to the config file.
+
+once you create and enroll your ziti Identity, to add a zitified scrape job add a job in the following format to your config file:
+
+- job_name: 'JobName'
+  scrape_interval: 15s
+  honor_labels: true
+  scheme: 'ziti'
+  params:
+    'match[]':
+      - '{job!=""}'
+    'ziti-config':
+      - '/path/to/prometheus/identity.json'
+  static_configs:
+    - targets:
+      - 'serviceName-hostingIdentityName'
+
+This will let prometheus know what identity to use for the job, and what service/identity to connect to for the scrape
+
+
+Configuring Ziti - Target Side
+
+To configure a target for prometheus an identity and service need to be created. The service should be a host v1 service that utilizes addressable terminators and should have a config similar to the following
+
+{
+  "port": {targetPort},
+  "address": "{targetAddress}",
+  "protocol": "tcp",
+  "listenOptions": {
+    "bindUsingEdgeIdentity": true
+  }
+}
+
+The service name should not include a hyphen. Once the service is created. It should be added to an appwan, along with the hosting identity and the prometheus server's identity
+
+If the target does not support ziti hosting of prometheus metrics natively, a ziti-host will be required to access the metrics.
+
+
+Configurating Federation
+
+For instances where the target happens to be a prometheus server, a few minor changes are needed.
+
+On the prometheus server that will be targeting the second prometheus server, the metrics_path option must be set in the job
+
+- job_name: 'JobName'
+  scrape_interval: 15s
+  honor_labels: true
+  metrics_path: '/federate'
+  scheme: 'ziti'
+  params:
+    'match[]':
+      - '{job!=""}'
+    'ziti-config':
+      - '/path/to/prometheus/identity.json'
+  static_configs:
+    - targets:
+      - 'serviceName-hostingIdentityName
+
+In the case where multiple prometheus servers with the same scrape targets are going to be federated, the following must be added to the global config of each
+
+external_labels:
+  '.*': 'uniqueLabelName'
