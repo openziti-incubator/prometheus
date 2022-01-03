@@ -566,7 +566,7 @@ func (h *Handler) Reload() <-chan chan error {
 }
 
 // Listener creates the TCP listener for web requests.
-func (h *Handler) Listener() (net.Listener, error) {
+func (h *Handler) useZitiListener() (net.Listener, error) {
 	level.Info(h.logger).Log("msg", "Start listening for connections", "address", h.options.ListenAddress)
 
 	listener, err := net.Listen("tcp", h.options.ListenAddress)

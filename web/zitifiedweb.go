@@ -20,6 +20,7 @@ import (
 	"github.com/openziti/sdk-golang/ziti"
 	"golang.org/x/net/netutil"
 	"net"
+	"runtime"
 	"strings"
 
 	zitiCfg "github.com/openziti/sdk-golang/ziti/config"
@@ -30,7 +31,12 @@ var ZitiIdFile string
 
 func init() {
 	ZitiIdServiceName = "boundprometheus"
-	ZitiIdFile = "/mnt/v/temp/prometheus/prometheusZitiIdentity.json"
+
+	if runtime.GOOS == "windows" {
+		ZitiIdFile = "v:/temp/prometheus/prometheusZitiIdentity.json"
+	} else {
+		ZitiIdFile = "/mnt/v/temp/prometheus/prometheusZitiIdentity.json"
+	}
 }
 
 // Listener creates the TCP listener for web requests.
