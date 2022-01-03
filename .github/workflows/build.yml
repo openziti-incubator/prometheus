@@ -13,21 +13,21 @@ jobs:
       matrix:
         include:
          - os: ubuntu-latest
-           helm_artifact_name: prometheus
-           helm_asset_name: prometheus-linux-amd64
-#         - os: windows-latest
-#           helm_artifact_name: prometheus.exe
-#           helm_asset_name: prometheus-windows-amd64.exe
+           prometheus_artifact_name: prometheus
+           prometheus_asset_name: prometheus-linux-amd64
+         - os: windows-latest
+           prometheus_artifact_name: prometheus.exe
+           prometheus_asset_name: prometheus-windows-amd64.exe
          - os: macos-latest
-           helm_artifact_name: prometheus
-           helm_asset_name: prometheus-macos-amd64
+           prometheus_artifact_name: prometheus
+           prometheus_asset_name: prometheus-macos-amd64
     steps:
     - uses: actions/checkout@v2
 
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
+        go-version: 1.17
 
     - name: Make the build dir
       run: mkdir "${{ runner.workspace }}/build"
@@ -36,24 +36,24 @@ jobs:
       run: make assets
       
     - name: Build
-      run: go build -o ${{ runner.workspace }}/build ./...
+      run: go build -o ${{ runner.workspace }}/build/${{ matrix.prometheus_artifact_name }} ./cmd/prometheus/main.go
       
     - name: make dir to tar
-      run: mkdir ${{ runner.workspace }}/{{ matrix.helm_artifact_name }}
+      run: mkdir ${{ matrix.prometheus_asset_name }}
       
     - name: move binary
-      run: mv ${{ runner.workspace }}/build/${{ matrix.helm_artifact_name }} ${{ runner.workspace }}/${{ matrix.helm_artifact_name }}/.
+      run: cp ${{ runner.workspace }}/build/${{ matrix.prometheus_artifact_name }} ${{ matrix.prometheus_asset_name }}/.
       
     - name: copy web
-      run: cp -R ${{ runner.workspace }}/web ${{ runner.workspace }}/${{ matrix.helm_artifact_name }}/.
+      run: cp -r ./web/ui/. ${{ matrix.prometheus_asset_name }}/.
     
     - name: tar
-      run: tar -zcvf ${{ matrix.helm_artifact_name }}.tar.gz ${{ runner.workspace }}/${{ matrix.helm_artifact_name }}
+      run: tar -zcvf ${{ matrix.prometheus_asset_name }}.tar.gz ${{ matrix.prometheus_asset_name }}
       
-    - name: Upload helm binaries to release
+    - name: Upload prometheus binaries to release
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ runner.workspace }}/build/${{ matrix.helm_artifact_name }}
-        asset_name: ${{ matrix.helm_asset_name }}
+        file: ${{ matrix.prometheus_asset_name }}.tar.gz
+        asset_name: ${{ matrix.prometheus_asset_name }}.tar.gz
         tag: ${{ github.ref }}
