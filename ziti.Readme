@@ -16,7 +16,7 @@ Building an image
 
 run
 
-    docker build -f ziti.Dockerfile . --platform linux/amd64 -t openziti/prometheuz
+    docker build -f ziti.Dockerfile . --platform linux/amd64 -t prometheuz
 
 
 Configuring Ziti - Server Side
