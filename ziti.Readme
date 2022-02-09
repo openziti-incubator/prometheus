@@ -3,27 +3,20 @@ This is a zitified version of prometheus. This version of prometheus can be conf
 
 Running the executable
 
-The executable expects to be ran from the same directory that the /web directly is located in order to display the prometheus UI. In order to run the executable first clone the 
+The executable expects to be ran from the same directory that the /web directly is located in order to display the prometheus UI.
 
 Building:
-For local development, first run
+For local development, run
 
-make assets
+    make build
 
-this will create the required web assets for displaying metrics using the react app provided by the prometheus project. Next run the following command
-
-go build -o prometheus ./cmd/prometheus/main.go
-
+this will create the prometheus binaries and required web assets for displaying metrics using the react app provided by the prometheus project
 
 Building an image
 
-first run
+run
 
-make assets
-
-and then run
-
-docker build -f ziti.Dockerfile . --platform linux/amd64
+    docker build -f ziti.Dockerfile . --platform linux/amd64 -t prometheuz
 
 
 Configuring Ziti - Server Side
