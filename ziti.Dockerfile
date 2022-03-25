@@ -10,7 +10,7 @@ WORKDIR /build
 # enable cgo by hijacking the PROMU_BINARIES variable to pass `--cgo` to promu
 RUN rm -rf web/ui/node_modules
 RUN make build PROMU_BINARIES=--cgo
-
+RUN make npm_licenses
 
 ###
 # The final stage is a slightly modified version of
