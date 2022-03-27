@@ -21,27 +21,32 @@ import (
 	zitiCfg "github.com/openziti/sdk-golang/ziti/config"
 	"golang.org/x/net/netutil"
 	"net"
-	"net/url"
 	"os"
 	"time"
 )
 
 // Listener creates the TCP listener for web requests.
 func (h *Handler) Listener() (net.Listener, error) {
-	var scheme string
-	u, err := url.Parse(h.options.ListenAddress)
-	if err == nil {
-		scheme = u.Scheme
-	}
-
 	level.Info(h.logger).Log("msg", "Start listening for connections", "address", h.options.ListenAddress)
 
-	var listener net.Listener
-	if scheme == "ziti" {
+	idFile := os.Getenv("ZITI_LISTENER_IDENTITY_FILE")
 
+	var listener net.Listener
+	var err error
+	if idFile != "" {
+		level.Info(h.logger).Log("msg", "enabling openziti listener for identity file: "+idFile)
+		// if ZITI_LISTENER_IDENTITY_FILE env var exists - this will be a 'zitified' listener
 		serviceName := os.Getenv("ZITI_LISTENER_SERVICE_NAME")
-		idFile := os.Getenv("ZITI_LISTENER_IDENTITY_FILE")
+		if serviceName == "" {
+			level.Info(h.logger).Log("msg", "ZITI_LISTENER_SERVICE_NAME not provided. Using default: prometheuz.service")
+			serviceName = "prometheuz.service"
+		}
+
 		idName := os.Getenv("ZITI_LISTENER_IDENTITY_NAME")
+		if idName == "" {
+			level.Info(h.logger).Log("msg", "ZITI_LISTENER_IDENTITY_NAME not provided. Using default: prometheuz.service")
+			idName = "prometheuz"
+		}
 
 		zcfg, e := zitiCfg.NewFromFile(idFile)
 		if e != nil {
