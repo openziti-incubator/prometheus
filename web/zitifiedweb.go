@@ -18,44 +18,46 @@ import (
 	"github.com/influxdata/influxdb/kit/errors"
 	conntrack "github.com/mwitkow/go-conntrack"
 	"github.com/openziti/sdk-golang/ziti"
+	zitiCfg "github.com/openziti/sdk-golang/ziti/config"
 	"golang.org/x/net/netutil"
 	"net"
-	"runtime"
-	"strings"
-
-	zitiCfg "github.com/openziti/sdk-golang/ziti/config"
+	"net/url"
+	"os"
+	"time"
 )
-
-var ZitiIdServiceName string
-var ZitiIdFile string
-
-func init() {
-	ZitiIdServiceName = "boundprometheus"
-
-	if runtime.GOOS == "windows" {
-		ZitiIdFile = "v:/temp/prometheus/prometheusZitiIdentity.json"
-	} else {
-		ZitiIdFile = "/mnt/v/temp/prometheus/prometheusZitiIdentity.json"
-	}
-}
 
 // Listener creates the TCP listener for web requests.
 func (h *Handler) Listener() (net.Listener, error) {
+	var scheme string
+	u, err := url.Parse(h.options.ListenAddress)
+	if err == nil {
+		scheme = u.Scheme
+	}
+
 	level.Info(h.logger).Log("msg", "Start listening for connections", "address", h.options.ListenAddress)
 
 	var listener net.Listener
-	var err error
-	if strings.HasPrefix(h.options.ListenAddress, "ziti") {
-		zcfg, e := zitiCfg.NewFromFile(ZitiIdFile)
+	if scheme == "ziti" {
+
+		serviceName := os.Getenv("ZITI_LISTENER_SERVICE_NAME")
+		idFile := os.Getenv("ZITI_LISTENER_IDENTITY_FILE")
+		idName := os.Getenv("ZITI_LISTENER_IDENTITY_NAME")
+
+		zcfg, e := zitiCfg.NewFromFile(idFile)
 		if e != nil {
 			return nil, errors.Wrap(e, "could not create Ziti config")
 		}
 		zitiContext := ziti.NewContextWithConfig(zcfg)
 		zopts := &ziti.ListenOptions{
-			BindUsingEdgeIdentity: true,
+			ConnectTimeout: 5 * time.Minute,
 		}
-		zopts.BindUsingEdgeIdentity = true
-		listener, err = zitiContext.ListenWithOptions(ZitiIdServiceName, zopts)
+		if idName != "" {
+			zopts.Identity = idName
+		}
+		listener, err = zitiContext.ListenWithOptions(serviceName, zopts)
+		//listener, err = zitiContext.Listen(serviceName)
+		h.options.ListenAddress = ""
+		level.Info(h.logger).Log("h.options.ListenAddress set to : ", h.options.ListenAddress)
 	} else {
 		listener, err = net.Listen("tcp", h.options.ListenAddress)
 	}

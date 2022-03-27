@@ -18,6 +18,10 @@ run
 
     docker build -f ziti.Dockerfile . --platform linux/amd64 -t prometheuz
 
+push to docker hub
+
+    docker tag prometheuz:latest "openziti/prometheuz:latest"
+    docker push "openziti/prometheuz:latest"
 
 Configuring Ziti - Server Side
 

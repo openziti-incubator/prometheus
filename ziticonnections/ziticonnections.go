@@ -13,13 +13,14 @@ import (
 )
 
 func GetZitiDialContext(zitiConfigPath string) func(ctx context.Context, network string, addr string) (net.Conn, error) {
-
 	configFile, err := config.NewFromFile(zitiConfigPath)
 
 	if err != nil {
 		logrus.WithError(err).Error("Error loading ziti config file")
 		os.Exit(1)
 	}
+
+	zitiCtx := ziti.NewContextWithConfig(configFile)
 
 	dialContextFunc := func(ctx context.Context, network string, addr string) (net.Conn, error) {
 		zitiDialInfo := strings.Split(addr, ":")[0]
@@ -33,11 +34,9 @@ func GetZitiDialContext(zitiConfigPath string) func(ctx context.Context, network
 			ConnectTimeout: time.Minute,
 		}
 
-		context := ziti.NewContextWithConfig(configFile)
-		return context.DialWithOptions(serviceName, dialOptions)
+		return zitiCtx.DialWithOptions(serviceName, dialOptions)
 
 	}
 
 	return dialContextFunc
-
 }
