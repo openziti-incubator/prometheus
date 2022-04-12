@@ -11,10 +11,10 @@ executors:
   # should also be updated.
   golang:
     docker:
-      - image: quay.io/prometheus/golang-builder:1.17-base
+      - image: quay.io/prometheus/golang-builder:1.18-base
   golang_oldest:
     docker:
-      - image: quay.io/prometheus/golang-builder:1.16-base
+      - image: quay.io/prometheus/golang-builder:1.17-base
 
 jobs:
   test_go:
@@ -62,6 +62,9 @@ jobs:
       - run: make ui-lint
       - run: make ui-build-module
       - run: make ui-test
+      - run: make assets-tarball -o assets
+      - store_artifacts:
+          path: web/ui/static.tar.gz
       - save_cache:
           key: v3-npm-deps-{{ checksum "web/ui/package-lock.json" }}
           paths:
