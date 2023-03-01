@@ -45,7 +45,7 @@ ui-install:
 
 .PHONY: ui-build
 ui-build:
-	cd $(UI_PATH) && npm run build
+	cd $(UI_PATH) && CI="" npm run build
 
 .PHONY: ui-build-module
 ui-build-module:
@@ -68,7 +68,7 @@ assets-compress: assets
 	scripts/compress_assets.sh
 
 .PHONY: assets-tarball
-assets-tarball: assets-compress
+assets-tarball: assets
 	@echo '>> packaging assets'
 	scripts/package_assets.sh
 
